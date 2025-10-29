@@ -12,8 +12,6 @@
     "check-circular-deps": "../../scripts/check-circular-deps.sh ./src/index.ts"
   },
   "devDependencies": {
-    "@supabase/auth-helpers-nextjs": "^0.10.0",
-    "@supabase/auth-helpers-react": "^0.5.0",
     "@supabase/supabase-js": "^2.48.1",
     "@types/jsonwebtoken": "^9.0.5",
     "eslint-config-custom": "*",

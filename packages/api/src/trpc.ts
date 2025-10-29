@@ -1,5 +1,5 @@
 import type { Database } from '@my/supabase/types'
-import { createRouteHandlerClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
 import { createClient } from '@supabase/supabase-js'
 import { TRPCError, initTRPC } from '@trpc/server'
 import type { FetchCreateContextFnOptions } from '@trpc/server/adapters/fetch'
@@ -13,9 +13,22 @@ export const createTRPCContext = async (opts: FetchCreateContextFnOptions) => {
   // if there's auth cookie it'll be authenticated by this helper
   const cookiesStore = (await cookies()) as unknown as UnsafeUnwrappedCookies
 
-  let supabase = createRouteHandlerClient<Database>({
-    cookies: () => cookiesStore as never,
-  })
+  let supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return cookiesStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            cookiesStore.set(name, value, options)
+          })
+        },
+      },
+    }
+  )
   let userId = (await supabase.auth.getUser()).data.user?.id
 
   if (!jwtSecret) {

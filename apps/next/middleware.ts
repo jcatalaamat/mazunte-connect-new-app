@@ -1,6 +1,7 @@
-import { createMiddlewareClient } from '@supabase/auth-helpers-nextjs'
+import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
+import type { Database } from '@my/supabase/types'
 
 // by default, all routes are protected
 
@@ -11,13 +12,35 @@ const authRoutes = ['/sign-in', '/sign-up', '/reset-password']
 
 export async function middleware(req: NextRequest) {
   // we need to create a response and hand it to the supabase client to be able to modify the response headers.
-  const res = NextResponse.next()
+  let res = NextResponse.next()
+
   // public routes - no need for Supabase
   if (publicRoutes.some((route) => req.nextUrl.pathname.startsWith(route))) {
     return res
   }
+
   // create authenticated Supabase Client.
-  const supabase = createMiddlewareClient({ req, res })
+  const supabase = createServerClient<Database>(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    {
+      cookies: {
+        getAll() {
+          return req.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value }) => req.cookies.set(name, value))
+          res = NextResponse.next({
+            request: { headers: req.headers },
+          })
+          cookiesToSet.forEach(({ name, value, options }) =>
+            res.cookies.set(name, value, options)
+          )
+        },
+      },
+    }
+  )
+
   // check if we have a session
   const {
     data: { user },

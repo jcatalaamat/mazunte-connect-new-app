@@ -1,6 +1,5 @@
-import { Database } from '@my/supabase/types'
-import { useSupabaseClient } from '@supabase/auth-helpers-react'
+import { useSupabaseClient } from '../../provider/auth/AuthProvider'
 
 export const useSupabase = () => {
-  return useSupabaseClient<Database>()
+  return useSupabaseClient()
 }

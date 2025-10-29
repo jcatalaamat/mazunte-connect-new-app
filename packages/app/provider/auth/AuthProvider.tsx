@@ -1,23 +1,40 @@
 import { Database } from '@my/supabase/types'
-import { Session, createPagesBrowserClient } from '@supabase/auth-helpers-nextjs'
-import { SessionContextProvider } from '@supabase/auth-helpers-react'
-import { useState } from 'react'
+import { createBrowserClient, type SupabaseClient } from '@supabase/ssr'
+import { createContext, useContext, useState } from 'react'
 
 import { AuthStateChangeHandler } from './AuthStateChangeHandler'
 
 export type AuthProviderProps = {
-  initialSession?: Session | null
   children?: React.ReactNode
 }
 
-export const AuthProvider = ({ initialSession, children }: AuthProviderProps) => {
+type SupabaseContext = {
+  supabase: SupabaseClient<Database>
+}
+
+const Context = createContext<SupabaseContext | undefined>(undefined)
+
+export const AuthProvider = ({ children }: AuthProviderProps) => {
   // Create a new supabase browser client on every first render.
-  const [supabaseClient] = useState(() => createPagesBrowserClient<Database>())
+  const [supabase] = useState(() =>
+    createBrowserClient<Database>(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    )
+  )
 
   return (
-    <SessionContextProvider supabaseClient={supabaseClient} initialSession={initialSession}>
+    <Context.Provider value={{ supabase }}>
       <AuthStateChangeHandler />
       {children}
-    </SessionContextProvider>
+    </Context.Provider>
   )
+}
+
+export const useSupabaseClient = () => {
+  const context = useContext(Context)
+  if (context === undefined) {
+    throw new Error('useSupabaseClient must be used within AuthProvider')
+  }
+  return context.supabase
 }
